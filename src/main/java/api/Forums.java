@@ -8,6 +8,8 @@ import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 
 @Singleton
@@ -43,9 +45,11 @@ public class Forums {
 
     @GET
     @Path("/details")
-    public Response getDBStatus() {
+    public Response getDBStatus(@Context HttpHeaders headers) {
 
-        //return StandartAnswerManager.ok(forum.getDetails());
+        boolean isUserDataRequested = headers.getRequestHeader("related").get(0).equals("user");
+        String forumShortName = headers.getRequestHeader("forum").get(0);
+        //return StandartAnswerManager.ok(forum.getDetails(isUserDataRequested));
         return StandartAnswerManager.ok();
     }
 }
