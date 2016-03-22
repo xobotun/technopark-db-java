@@ -1,6 +1,4 @@
-import api.Forums;
-import api.General;
-import api.Users;
+import api.*;
 
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
@@ -15,6 +13,8 @@ public class RestApplication extends Application {
         objects.add(new General());
         objects.add(new Forums());
         objects.add(new Users());
+        objects.add(new Posts());
+        objects.add(new Threads());
         return objects;
     }
 }

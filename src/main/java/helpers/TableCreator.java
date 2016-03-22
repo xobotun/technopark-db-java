@@ -147,10 +147,11 @@ public class TableCreator {
             statement.execute("DROP TABLE IF EXISTS " + DBConnectionManager.DBNAME + ".Post;");
             statement.execute("CREATE TABLE IF NOT EXISTS " + DBConnectionManager.DBNAME + ".Post (" +
                     "id INT NOT NULL AUTO_INCREMENT, " +
-                    "parent VARCHAR(255) NULL DEFAULT 0, " +
+                    "parent INT NULL DEFAULT 0, " +
                     "thread INT NOT NULL, " +
-                    "date DATETIME NOT NULL, " +
+                    "date VARCHAR(19) NOT NULL, " +
                     "user VARCHAR(255) NOT NULL, " +
+                    "forum VARCHAR(255) NOT NULL, " +
                     "message TEXT NOT NULL, " +
                     "isApproved TINYINT NOT NULL DEFAULT 0, " +
                     "isHighlighted TINYINT NOT NULL DEFAULT 0, " +
@@ -160,6 +161,7 @@ public class TableCreator {
                     "likes INT NOT NULL DEFAULT 0, " +
                     "dislikes INT NOT NULL DEFAULT 0, " +
                     "points INT NOT NULL DEFAULT 0, " +
+                    "treePath VARCHAR(255) NULL DEFAULT 0," +
                     "PRIMARY KEY (id));");
             System.out.println("Post succesfully created!");
         } catch (SQLException ex) {
@@ -184,9 +186,9 @@ public class TableCreator {
                     "id INT NOT NULL AUTO_INCREMENT, " +
                     "title VARCHAR(255) NOT NULL, " +
                     "slug VARCHAR(255) NOT NULL, " +
-                    "date DATETIME NOT NULL, " +
-                    "user INT NOT NULL, " +
-                    "forum INT NOT NULL, " +
+                    "date VARCHAR(19) NOT NULL, " +
+                    "user VARCHAR(255) NOT NULL, " +
+                    "forum VARCHAR(255) NOT NULL, " +
                     "message TEXT NOT NULL, " +
                     "isDeleted TINYINT NOT NULL DEFAULT 0, " +
                     "isClosed TINYINT NOT NULL DEFAULT 0, " +
@@ -217,6 +219,30 @@ public class TableCreator {
                     "user INT NOT NULL, " +
                     "thread INT NOT NULL);");
             System.out.println("SubscriptionMap succesfully created!");
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            try {
+                if (statement != null)
+                    statement.close();
+            } catch (SQLException ex) {
+                DBConnectionManager.printSQLExceptionData(ex);
+            }
+        }
+    }
+
+    private static void createTriggers() {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        Statement statement = null;
+        try {
+            statement = connection.createStatement();
+            statement.execute("DROP TRIGGER IF EXISTS `update_thread_posts_counter`");
+            statement.execute("CREATE TRIGGER `update_thread_posts_counter` AFTER INSERT ON " + DBConnectionManager.DBNAME + ".Post " +
+                    "FOR EACH ROW " +
+                    "UPDATE " + DBConnectionManager.DBNAME + ".Thread " +
+                    "SET posts = posts + 1 " +
+                    "WHERE " + DBConnectionManager.DBNAME + ".Thread.id = NEW.thread");
+            System.out.println("Triggers succesfully created!");
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
         } finally {

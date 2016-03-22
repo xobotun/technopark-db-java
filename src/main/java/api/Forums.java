@@ -12,6 +12,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Iterator;
 
 @Singleton
 @Path("/forum")
@@ -51,10 +52,38 @@ public class Forums {
 
     @GET
     @Path("/details/")
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getDetails(@Context HttpServletRequest request) {
-        boolean isUserDataRequested = request.getParameter("related").equals("user");
-        String forumShortName = request.getParameter("forum");
+    public Response getDetails(String jsonString, @Context HttpServletRequest request) {
+        boolean isUserDataRequested = false;
+        String forumShortName;
+
+        if (request.getQueryString().isEmpty()) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"forum"});
+            if (errorList == null) {
+                if (jsonRequest.has("related"))
+                {
+                    JSONArray related = jsonRequest.getJSONArray("related");
+                    for (int i = 0; i < related.length(); ++i)
+                        if (related.get(i).equals("user"))
+                            isUserDataRequested = true;
+
+                }
+                forumShortName = jsonRequest.getString("forum");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            isUserDataRequested = request.getParameter("related").equals("user");
+            forumShortName = request.getParameter("forum");
+        }
+
         JSONObject forum = Forum.getDetails(forumShortName, isUserDataRequested);
         if (forum != null)
             return StandartAnswerManager.ok(forum);

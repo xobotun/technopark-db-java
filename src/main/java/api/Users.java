@@ -59,8 +59,26 @@ public class Users {
     @GET
     @Path("/details/")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getDetails(@Context HttpServletRequest request) {
-        String userEmail = request.getParameter("user");
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response getDetails(String jsonString, @Context HttpServletRequest request) {
+        String userEmail;
+
+        if (request.getQueryString().isEmpty()) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"forum"});
+            if (errorList == null) {
+                userEmail = jsonRequest.getString("forum");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+        } else {
+            userEmail = request.getParameter("user");
+        }
+
         JSONObject user = User.getDetails(userEmail);
         if (user != null)
             return StandartAnswerManager.ok(user);
