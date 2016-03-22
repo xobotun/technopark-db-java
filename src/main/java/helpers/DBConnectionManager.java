@@ -44,8 +44,7 @@ public class DBConnectionManager implements AutoCloseable {
                 rootConnection = DriverManager.getConnection(ADDRESS, ROOT_LOGIN, ROOT_PASSWORD);
             System.out.println("Connection succesfully opened!");
         } catch (SQLException ex) {
-            System.out.println("Could not open connection: " + ex.getErrorCode());
-            ex.printStackTrace();
+            printSQLExceptionData(ex);
         }
     }
 
@@ -55,10 +54,15 @@ public class DBConnectionManager implements AutoCloseable {
             connection.close();
             System.out.println("Connection succesfully closed!");
         } catch (SQLException ex) {
-            System.out.println("Could not close connection: " + ex.getErrorCode());
-            ex.printStackTrace();
+            printSQLExceptionData(ex);
         }
 
+
+    }
+
+    public static void printSQLExceptionData(SQLException exception) {
+        System.out.println("An error has encountered: " + exception.getErrorCode());
+        exception.printStackTrace();
     }
 
     private static DBConnectionManager instance = new DBConnectionManager();

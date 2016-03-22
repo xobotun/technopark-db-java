@@ -1,4 +1,4 @@
-package entities;
+package helpers;
 
 public class Post {
 }

@@ -11,10 +11,10 @@ public class Main {
         System.out.format("Starting at port: %d\n", port);
 
         final Server server = new Server(port);
-        final ServletContextHandler contextHandler = new ServletContextHandler(server, "/db/api/", ServletContextHandler.SESSIONS);
+        final ServletContextHandler contextHandler = new ServletContextHandler(server, "/db/api");
 
         final ServletHolder servletHolder = new ServletHolder(ServletContainer.class);
-        servletHolder.setInitParameter("javax.ws.rs.Application", "main.RestApplication");
+        servletHolder.setInitParameter("javax.ws.rs.Application", "RestApplication");
 
         contextHandler.addServlet(servletHolder, "/*");
 

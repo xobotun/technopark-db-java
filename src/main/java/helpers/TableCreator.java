@@ -1,5 +1,7 @@
 package helpers;
 
+import org.json.JSONObject;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -13,6 +15,27 @@ public class TableCreator {
         createPost();
         createThread();
         createSubscriptionMap();
+    }
+
+    public static void dropAll() {
+        Connection connection = DBConnectionManager.getInstance().getRootConnection();
+        Statement statement = null;
+        try {
+            statement = connection.createStatement();
+            statement.execute("DROP USER IF EXISTS " + DBConnectionManager.LOGIN_DOMAIN);
+            statement.execute("DROP DATABASE IF EXISTS " + DBConnectionManager.DBNAME + ";");
+
+            System.out.println("Database succesfully dropped!");
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            try {
+                if (statement != null)
+                    statement.close();
+            } catch (SQLException ex) {
+                DBConnectionManager.printSQLExceptionData(ex);
+            }
+        }
     }
 
     private static void createDB() {
@@ -29,18 +52,15 @@ public class TableCreator {
 
             statement.execute("GRANT ALL ON " + DBConnectionManager.DBNAME + ".* TO " + DBConnectionManager.LOGIN_DOMAIN + ";");
 
-            statement.close();
             System.out.println("Database succesfully created!");
         } catch (SQLException ex) {
-            System.out.println("Error during creating database: " + ex.getErrorCode());
-            ex.printStackTrace();
+            DBConnectionManager.printSQLExceptionData(ex);
         } finally {
             try {
                 if (statement != null)
                     statement.close();
             } catch (SQLException ex) {
-                System.out.println("Error during closing statement: " + ex.getErrorCode());
-                ex.printStackTrace();
+                DBConnectionManager.printSQLExceptionData(ex);
             }
         }
     }
@@ -52,23 +72,20 @@ public class TableCreator {
             statement = connection.createStatement();
             statement.execute("DROP TABLE IF EXISTS " + DBConnectionManager.DBNAME + ".Forum;");
             statement.execute("CREATE TABLE IF NOT EXISTS " + DBConnectionManager.DBNAME + ".Forum (" +
-                    "id INT NOT NULL, " +
+                    "id INT NOT NULL AUTO_INCREMENT, " +
                     "name VARCHAR(255) NOT NULL, " +
                     "shortName VARCHAR(255) NOT NULL, " +
-                    "user INT NOT NULL, " +
+                    "user VARCHAR(255) NOT NULL, " +
                     "PRIMARY KEY (id));");
-            statement.close();
             System.out.println("Forum succesfully created!");
         } catch (SQLException ex) {
-            System.out.println("Error during creating Forum: " + ex.getErrorCode());
-            ex.printStackTrace();
+            DBConnectionManager.printSQLExceptionData(ex);;
         } finally {
             try {
                 if (statement != null)
                     statement.close();
             } catch (SQLException ex) {
-                System.out.println("Error during closing statement: " + ex.getErrorCode());
-                ex.printStackTrace();
+                DBConnectionManager.printSQLExceptionData(ex);
             }
         }
     }
@@ -87,18 +104,15 @@ public class TableCreator {
                               "isAnonymous TINYINT NOT NULL, " +
                               "name VARCHAR(255) NULL, " +
                               "PRIMARY KEY (id));");
-            statement.close();
             System.out.println("User succesfully created!");
         } catch (SQLException ex) {
-            System.out.println("Error during creating User: " + ex.getErrorCode());
-            ex.printStackTrace();
+            DBConnectionManager.printSQLExceptionData(ex);
         } finally {
             try {
                 if (statement != null)
                     statement.close();
             } catch (SQLException ex) {
-                System.out.println("Error during closing statement: " + ex.getErrorCode());
-                ex.printStackTrace();
+                DBConnectionManager.printSQLExceptionData(ex);
             }
         }
     }
@@ -112,18 +126,15 @@ public class TableCreator {
             statement.execute("CREATE TABLE IF NOT EXISTS " + DBConnectionManager.DBNAME + ".FollowMap (" +
                     "follower INT NOT NULL, " +
                     "followee INT NOT NULL);");
-            statement.close();
             System.out.println("FollowMap succesfully created!");
         } catch (SQLException ex) {
-            System.out.println("Error during creating FollowMap: " + ex.getErrorCode());
-            ex.printStackTrace();
+            DBConnectionManager.printSQLExceptionData(ex);
         } finally {
             try {
                 if (statement != null)
                     statement.close();
             } catch (SQLException ex) {
-                System.out.println("Error during closing statement: " + ex.getErrorCode());
-                ex.printStackTrace();
+                DBConnectionManager.printSQLExceptionData(ex);
             }
         }
     }
@@ -139,7 +150,7 @@ public class TableCreator {
                     "parent VARCHAR(255) NULL DEFAULT 0, " +
                     "thread INT NOT NULL, " +
                     "date DATETIME NOT NULL, " +
-                    "user INT NOT NULL, " +
+                    "user VARCHAR(255) NOT NULL, " +
                     "message TEXT NOT NULL, " +
                     "isApproved TINYINT NOT NULL DEFAULT 0, " +
                     "isHighlighted TINYINT NOT NULL DEFAULT 0, " +
@@ -150,18 +161,15 @@ public class TableCreator {
                     "dislikes INT NOT NULL DEFAULT 0, " +
                     "points INT NOT NULL DEFAULT 0, " +
                     "PRIMARY KEY (id));");
-            statement.close();
             System.out.println("Post succesfully created!");
         } catch (SQLException ex) {
-            System.out.println("Error during creating Post: " + ex.getErrorCode());
-            ex.printStackTrace();
+            DBConnectionManager.printSQLExceptionData(ex);
         } finally {
             try {
                 if (statement != null)
                     statement.close();
             } catch (SQLException ex) {
-                System.out.println("Error during closing statement: " + ex.getErrorCode());
-                ex.printStackTrace();
+                DBConnectionManager.printSQLExceptionData(ex);
             }
         }
     }
@@ -186,18 +194,15 @@ public class TableCreator {
                     "dislikes INT NOT NULL DEFAULT 0, " +
                     "points INT NOT NULL DEFAULT 0, " +
                     "PRIMARY KEY (id));");
-            statement.close();
             System.out.println("Thread succesfully created!");
         } catch (SQLException ex) {
-            System.out.println("Error during creating Thread: " + ex.getErrorCode());
-            ex.printStackTrace();
+            DBConnectionManager.printSQLExceptionData(ex);
         } finally {
             try {
                 if (statement != null)
                     statement.close();
             } catch (SQLException ex) {
-                System.out.println("Error during closing statement: " + ex.getErrorCode());
-                ex.printStackTrace();
+                DBConnectionManager.printSQLExceptionData(ex);
             }
         }
     }
@@ -211,18 +216,15 @@ public class TableCreator {
             statement.execute("CREATE TABLE IF NOT EXISTS " + DBConnectionManager.DBNAME + ".SubscriptionMap (" +
                     "user INT NOT NULL, " +
                     "thread INT NOT NULL);");
-            statement.close();
             System.out.println("SubscriptionMap succesfully created!");
         } catch (SQLException ex) {
-            System.out.println("Error during creating SubscriptionMap: " + ex.getErrorCode());
-            ex.printStackTrace();
+            DBConnectionManager.printSQLExceptionData(ex);
         } finally {
             try {
                 if (statement != null)
                     statement.close();
             } catch (SQLException ex) {
-                System.out.println("Error during closing statement: " + ex.getErrorCode());
-                ex.printStackTrace();
+                DBConnectionManager.printSQLExceptionData(ex);
             }
         }
     }
