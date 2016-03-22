@@ -80,17 +80,34 @@ public class Post {
     }
 
     @Nullable
-    public static JSONArray getPostsRelatedToThread(int threadID) {
+    public static JSONArray getPostsRelatedToThread(int threadID, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread, boolean isDesc, String since, String limit) {
         Connection connection = DBConnectionManager.getInstance().getConnection();
         PreparedStatement statement = null;
         JSONArray result = new JSONArray();
 
         try {
-            statement = connection.prepareStatement("SELECT * FROM Post WHERE thread=?");
+            StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE thread=?");
+            if (since != null)
+                query.append(" AND date > since");
+            if (limit != null)
+                query.append(" LIMIT ").append(Integer.parseInt(limit));
+            if (isDesc)
+                query.append(" ORDER BY date DESC");
+            else
+                query.append(" ORDER BY date ASC");
+            statement = connection.prepareStatement(query.toString());
             statement.setInt(1, threadID);
             ResultSet rows = statement.executeQuery();
-            while (rows.next())
-                result.put(translate(rows));
+            while (rows.next()) {
+                JSONObject temp = translate(rows);
+                if (shouldExpandUser)
+                    temp.put("user", User.getDetails(temp.getString("user")));
+                if (shouldExpandForum)
+                    temp.put("forum", Forum.getDetails(temp.getString("forum"), false));
+                if (shouldExpandThread)
+                    temp.put("thread", Thread.getDetails(temp.getInt("thread"), false, false));
+                result.put(temp);
+            }
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
         } finally {

@@ -1,6 +1,7 @@
 package helpers;
 
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.Connection;
@@ -61,6 +62,11 @@ public class Forum {
         return result;
     }
 
+    @Nullable
+    public static JSONArray listPosts(String shortName, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread, boolean isDesc, String since, String limit) {
+        int threadID = getDetails(shortName, false).getInt("id");
+        return Post.getPostsRelatedToThread(threadID, shouldExpandUser, shouldExpandForum, shouldExpandThread, isDesc, since, limit);
+    }
 
     public static JSONObject translate(ResultSet set) {
         try {

@@ -13,7 +13,13 @@ public class StandartAnswerManager {
         return Response.status(Response.Status.OK).entity(new JSONObject().put("code", 0).put("response", s).toString()).build();
     }
 
+
+
     public static Response ok(JSONObject json) {
+        return Response.status(Response.Status.OK).entity(new JSONObject().put("code", 0).put("response", json).toString()).build();
+    }
+
+    public static Response ok(JSONArray json) {
         return Response.status(Response.Status.OK).entity(new JSONObject().put("code", 0).put("response", json).toString()).build();
     }
 
@@ -28,7 +34,6 @@ public class StandartAnswerManager {
     public static Response badRequest(JSONArray json) {
         return Response.status(Response.Status.BAD_REQUEST).entity(new JSONObject().put("code", 1).put("response", json).toString()).build();
     }
-
 
     public static Response badRequest() {
         return badRequest("The request was different from the one was expected.");
