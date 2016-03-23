@@ -43,8 +43,13 @@ public class Forums {
         } else
             return StandartAnswerManager.badRequest(errorList);
 
-        Forum.create(name, shortName, user);
-        JSONObject forum = Forum.getDetails(shortName, false);
+        JSONObject forum;
+        try {
+            Forum.create(name, shortName, user);
+            forum = Forum.getDetails(shortName, false);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
         if (forum != null)
             return StandartAnswerManager.ok(forum);
         else
@@ -59,7 +64,7 @@ public class Forums {
         boolean isUserDataRequested = false;
         String forumShortName;
 
-        if (request.getQueryString().isEmpty()) {
+        if (request.getQueryString() == null) {
             final JSONObject jsonRequest;
             try {
                 jsonRequest = new JSONObject(jsonString);
@@ -85,7 +90,13 @@ public class Forums {
             forumShortName = request.getParameter("forum");
         }
 
-        JSONObject forum = Forum.getDetails(forumShortName, isUserDataRequested);
+
+        JSONObject forum;
+        try {
+            forum = Forum.getDetails(forumShortName, isUserDataRequested);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
         if (forum != null)
             return StandartAnswerManager.ok(forum);
         else
@@ -105,14 +116,14 @@ public class Forums {
         String limit = null;
         String since = null;
 
-        if (request.getQueryString().isEmpty()) {
+        if (request.getQueryString() == null) {
             final JSONObject jsonRequest;
             try {
                 jsonRequest = new JSONObject(jsonString);
             } catch (JSONException ex) {
                 return StandartAnswerManager.badRequest();
             }
-            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"post"});
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"forum"});
             if (errorList == null) {
                 if (jsonRequest.has("related")) {
                     JSONArray related = jsonRequest.getJSONArray("related");
@@ -124,14 +135,14 @@ public class Forums {
                         if (related.get(i).equals("thread"))
                             isThreadDataRequested = true;
                     }
-                    if (jsonRequest.has("order"))
-                        if (jsonRequest.get("order").equals("asc"))
-                            isDesc = false;
-                    if (jsonRequest.has("limit"))
-                        limit = jsonRequest.getString("limit");
-                    if (jsonRequest.has("since"))
-                        since = jsonRequest.getString("since");
                 }
+                if (jsonRequest.has("order"))
+                    if (jsonRequest.get("order").equals("asc"))
+                        isDesc = false;
+                if (jsonRequest.has("limit"))
+                    limit = jsonRequest.getString("limit");
+                if (jsonRequest.has("since"))
+                    since = jsonRequest.getString("since");
                 shortName = jsonRequest.getString("forum");
             } else
                 return StandartAnswerManager.badRequest(errorList);
@@ -154,10 +165,130 @@ public class Forums {
             shortName = request.getParameter("forum");
 
         }
+        JSONArray posts;
+        try{
+            posts = Forum.listPosts(shortName, isUserDataRequested, isForumDataRequested, isThreadDataRequested, isDesc, since, limit);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
 
-        JSONArray posts = Forum.listPosts(shortName, isUserDataRequested, isForumDataRequested, isThreadDataRequested, isDesc, since, limit);
         if (posts != null)
             return StandartAnswerManager.ok(posts);
+        else
+            return StandartAnswerManager.badRequest("No such forum!");
+    }
+
+    @GET
+    @Path("/listThreads/")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response listThreads(String jsonString, @Context HttpServletRequest request) {
+        boolean isUserDataRequested = false;
+        boolean isForumDataRequested = false;
+        boolean isDesc = true;
+        String shortName = null;
+        String limit = null;
+        String since = null;
+
+        if (request.getQueryString() == null) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"forum"});
+            if (errorList == null) {
+                if (jsonRequest.has("related")) {
+                    JSONArray related = jsonRequest.getJSONArray("related");
+                    for (int i = 0; i < related.length(); ++i) {
+                        if (related.get(i).equals("user"))
+                            isUserDataRequested = true;
+                        if (related.get(i).equals("forum"))
+                            isForumDataRequested = true;
+                    }
+                }
+                if (jsonRequest.has("order"))
+                    if (jsonRequest.get("order").equals("asc"))
+                        isDesc = false;
+                if (jsonRequest.has("limit"))
+                    limit = jsonRequest.getString("limit");
+                if (jsonRequest.has("since"))
+                    since = jsonRequest.getString("since");
+                shortName = jsonRequest.getString("forum");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            if (request.getParameter("related") != null)
+                for (String parameter : request.getParameterValues("related")) {
+                    if (parameter.equals("user"))
+                        isUserDataRequested = true;
+                    if (parameter.equals("forum"))
+                        isForumDataRequested = true;
+                }
+            if (request.getParameter("order").equals("asc"))
+                isDesc = false;
+            limit = request.getParameter("limit");
+            since = request.getParameter("since");
+
+            shortName = request.getParameter("forum");
+
+        }
+        JSONArray threads;
+        try {
+            threads = Forum.listThreads(shortName, isUserDataRequested, isForumDataRequested, isDesc, since, limit);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
+        if (threads != null)
+            return StandartAnswerManager.ok(threads);
+        else
+            return StandartAnswerManager.badRequest("No such forum!");
+    }
+
+    @GET
+    @Path("/listUsers/")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response listUsers(String jsonString, @Context HttpServletRequest request) {
+        boolean isDesc = true;
+        String shortName = null;
+        String limit = null;
+        String sinceID = null;
+
+        if (request.getQueryString() == null) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"forum"});
+            if (errorList == null) {
+                    if (jsonRequest.has("order"))
+                        if (jsonRequest.get("order").equals("asc"))
+                            isDesc = false;
+                    if (jsonRequest.has("limit"))
+                        limit = jsonRequest.getString("limit");
+                    if (jsonRequest.has("since"))
+                        sinceID = jsonRequest.getString("since");
+                shortName = jsonRequest.getString("forum");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            if (request.getParameter("order").equals("asc"))
+                isDesc = false;
+            limit = request.getParameter("limit");
+            sinceID = request.getParameter("since");
+            shortName = request.getParameter("forum");
+
+        }
+
+        JSONArray users = Forum.listUsers(shortName, isDesc, sinceID, limit);
+        if (users != null)
+            return StandartAnswerManager.ok(users);
         else
             return StandartAnswerManager.badRequest("No such forum!");
     }

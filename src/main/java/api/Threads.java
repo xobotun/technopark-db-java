@@ -52,8 +52,14 @@ public class Threads {
         } else
             return StandartAnswerManager.badRequest(errorList);
 
-        int id = Thread.create(isDeleted, forum, title, isClosed, user, date, message, slug);
-        JSONObject thread = Thread.getDetails(id, false, false);
+        int id;
+        JSONObject thread;
+        try {
+             id = Thread.create(isDeleted, forum, title, isClosed, user, date, message, slug);
+             thread = Thread.getDetails(id, false, false);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
         if (thread != null)
             return StandartAnswerManager.ok(thread);
         else
@@ -69,7 +75,7 @@ public class Threads {
         boolean isForumDataRequested = false;
         int threadID = -1;
 
-        if (request.getQueryString().isEmpty()) {
+        if (request.getQueryString() == null) {
             final JSONObject jsonRequest;
             try {
                 jsonRequest = new JSONObject(jsonString);
@@ -85,6 +91,8 @@ public class Threads {
                             isUserDataRequested = true;
                         if (related.get(i).equals("forum"))
                             isForumDataRequested = true;
+                        if (related.get(i).equals("thread"))
+                            return StandartAnswerManager.code3();
                     }
 
                 }
@@ -99,12 +107,18 @@ public class Threads {
                         isUserDataRequested = true;
                     if (parameter.equals("forum"))
                         isForumDataRequested = true;
+                    if (parameter.equals("thread"))
+                        return StandartAnswerManager.code3();
                 }
             threadID = Integer.parseInt(request.getParameter("thread"));
 
         }
 
-        JSONObject thread = Thread.getDetails(threadID, isUserDataRequested, isForumDataRequested);
+        JSONObject thread;
+        try { thread = Thread.getDetails(threadID, isUserDataRequested, isForumDataRequested); }
+        catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
         if (thread != null)
             return StandartAnswerManager.ok(thread);
         else

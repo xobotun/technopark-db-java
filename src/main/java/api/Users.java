@@ -48,8 +48,13 @@ public class Users {
         } else
             return StandartAnswerManager.badRequest(errorList);
 
-        User.create(username, about, name, email, isAnonymous);
-        JSONObject user = User.getDetails(email);
+        JSONObject user;
+        try {
+            User.create(username, about, name, email, isAnonymous);
+            user = User.getDetails(email);
+        } catch ( Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
         if (user != null)
             return StandartAnswerManager.ok(user);
         else
@@ -63,7 +68,7 @@ public class Users {
     public Response getDetails(String jsonString, @Context HttpServletRequest request) {
         String userEmail;
 
-        if (request.getQueryString().isEmpty()) {
+        if (request.getQueryString() == null) {
             final JSONObject jsonRequest;
             try {
                 jsonRequest = new JSONObject(jsonString);
@@ -79,7 +84,13 @@ public class Users {
             userEmail = request.getParameter("user");
         }
 
-        JSONObject user = User.getDetails(userEmail);
+
+        JSONObject user;
+        try {
+            user = User.getDetails(userEmail);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
         if (user != null)
             return StandartAnswerManager.ok(user);
         else

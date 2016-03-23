@@ -65,7 +65,12 @@ public class Posts {
             return StandartAnswerManager.badRequest(errorList);
 
         int id = Post.create(parent,isApproved,isHighlighted,isEdited,isSpam,isDeleted,date,thread,message,user,forum);
-        JSONObject post = Post.getDetails(id, false, false, false);
+        JSONObject post;
+        try {
+            post = Post.getDetails(id, false, false, false);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
         if (post != null)
             return StandartAnswerManager.ok(post);
         else
@@ -82,7 +87,7 @@ public class Posts {
         boolean isThreadDataRequested = false;
         int postID = -1;
 
-        if (request.getQueryString().isEmpty()) {
+        if (request.getQueryString() == null) {
             final JSONObject jsonRequest;
             try {
                 jsonRequest = new JSONObject(jsonString);
@@ -121,10 +126,241 @@ public class Posts {
 
         }
 
-        JSONObject post = Post.getDetails(postID, isUserDataRequested, isForumDataRequested, isThreadDataRequested);
+        JSONObject post;
+        try {
+            post = Post.getDetails(postID, isUserDataRequested, isForumDataRequested, isThreadDataRequested);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
         if (post != null)
             return StandartAnswerManager.ok(post);
         else
             return StandartAnswerManager.badRequest("No such forum!");
     }
+
+    @GET
+    @Path("/list/")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response list(String jsonString, @Context HttpServletRequest request) {
+        boolean isDesc = true;
+        String limit = null;
+        String since = null;
+        String shortName = null;
+        String threadID = null;
+
+        if (request.getQueryString() == null) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{});
+            if (errorList == null) {
+                if (jsonRequest.has("order"))
+                    if (jsonRequest.get("order").equals("asc"))
+                        isDesc = false;
+                if (jsonRequest.has("limit"))
+                    limit = jsonRequest.getString("limit");
+                if (jsonRequest.has("since"))
+                    since = jsonRequest.getString("since");
+                shortName = jsonRequest.getString("forum");
+                threadID = jsonRequest.getString("thread");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            if (request.getParameter("order").equals("asc"))
+                isDesc = false;
+            limit = request.getParameter("limit");
+            since = request.getParameter("since");
+
+            shortName = request.getParameter("forum");
+            threadID = request.getParameter("thread");
+
+        }
+
+        if (threadID == null &&  shortName == null)
+            return StandartAnswerManager.code3();
+        if (threadID != null && shortName != null)
+            return StandartAnswerManager.code3();
+
+
+        JSONArray posts;
+        try {
+            if (shortName != null)
+                posts = Post.getPostsRelatedToForum(shortName, false, false, false, isDesc, since, limit);
+            else
+                posts = Post.getPostsRelatedToThread(threadID, false, false, false, isDesc, since, limit);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
+
+        if (posts != null)
+            return StandartAnswerManager.ok(posts);
+        else
+            return StandartAnswerManager.badRequest("No such forum!");
+    }
+
+    @POST
+    @Path("/remove/")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response remove(String jsonString, @Context HttpServletRequest request) {
+        int postID = -1;
+
+        if (request.getQueryString() == null) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"post"});
+            if (errorList == null) {
+                postID = jsonRequest.getInt("post");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            postID = Integer.parseInt(request.getParameter("post"));
+        }
+
+        Integer post = null;
+        try {
+            post = Post.remove(postID);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
+        if (post != null)
+            return StandartAnswerManager.ok(new JSONObject().put("post", post));
+        else
+            return StandartAnswerManager.badRequest("No such forum!");
+    }
+
+    @POST
+    @Path("/restore/")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response restore(String jsonString, @Context HttpServletRequest request) {
+        int postID = -1;
+
+        if (request.getQueryString() == null) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"post"});
+            if (errorList == null) {
+                postID = jsonRequest.getInt("post");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            postID = Integer.parseInt(request.getParameter("post"));
+        }
+
+        Integer post = null;
+        try {
+            post = Post.restore(postID);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
+        if (post != null)
+            return StandartAnswerManager.ok(new JSONObject().put("post", post));
+        else
+            return StandartAnswerManager.badRequest("No such forum!");
+    }
+
+    @POST
+    @Path("/update/")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response update(String jsonString, @Context HttpServletRequest request) {
+        int postID = -1;
+        String message;
+
+        if (request.getQueryString() == null) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"post", "message"});
+            if (errorList == null) {
+                postID = jsonRequest.getInt("post");
+                message = jsonRequest.getString("message");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            postID = Integer.parseInt(request.getParameter("post"));
+            message = request.getParameter("message");
+        }
+
+        JSONObject post = null;
+        try {
+            Post.update(postID, message);
+            post = Post.getDetails(postID, false, false, false);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
+        if (post != null)
+            return StandartAnswerManager.ok(new JSONObject().put("post", post));
+        else
+            return StandartAnswerManager.badRequest("No such forum!");
+    }
+
+    @POST
+    @Path("/vote/")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response vote(String jsonString, @Context HttpServletRequest request) {
+        int postID = -1;
+        boolean isDislike = false;
+        String message;
+
+        if (request.getQueryString() == null) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"post", "vote"});
+            if (errorList == null) {
+                postID = jsonRequest.getInt("post");
+                Integer temp = jsonRequest.getInt("vote");
+                if (temp == -1)
+                    isDislike = true;
+                else if (temp == 1)
+                    isDislike = false;
+                else
+                    return  StandartAnswerManager.code3();
+
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            postID = Integer.parseInt(request.getParameter("post"));
+            message = request.getParameter("message");
+        }
+
+        JSONObject post = null;
+        try {
+            Post.vote(postID, isDislike);
+            post = Post.getDetails(postID, false, false, false);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
+        if (post != null)
+            return StandartAnswerManager.ok(new JSONObject().put("post", post));
+        else
+            return StandartAnswerManager.badRequest("No such forum!");
+    }
+
 }

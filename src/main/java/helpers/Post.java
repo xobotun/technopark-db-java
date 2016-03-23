@@ -13,7 +13,7 @@ public class Post {
         int newID = 0;
 
         try {
-            statement = connection.prepareStatement("INSERT INTO Post (parent, isApproved, isHighlighted, isEdited, isSpam, isDeleted, date, thread, message, user, forum) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            statement = connection.prepareStatement("INSERT INTO Post (parent, isApproved, isHighlighted, isEdited, isSpam, isDeleted, `date`, thread, message, user, forum) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             if (parent == null)
                 statement.setNull(1, Types.INTEGER);
             else
@@ -48,7 +48,7 @@ public class Post {
     }
 
     @Nullable
-    public static JSONObject getDetails(int id, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread) {
+    public static JSONObject getDetails(int id, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread) throws Exception {
         Connection connection = DBConnectionManager.getInstance().getConnection();
         PreparedStatement statement = null;
         JSONObject result = null;
@@ -57,7 +57,8 @@ public class Post {
             statement = connection.prepareStatement("SELECT * FROM Post WHERE id=?");
             statement.setInt(1, id);
             ResultSet rows = statement.executeQuery();
-            rows.first();
+            if (!rows.first())
+                throw new Exception("1");
             result = translate(rows);
             if (shouldExpandUser)
                 result.put("user", User.getDetails(result.getString("user")));
@@ -80,23 +81,23 @@ public class Post {
     }
 
     @Nullable
-    public static JSONArray getPostsRelatedToThread(int threadID, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread, boolean isDesc, String since, String limit) {
+    public static JSONArray getPostsRelatedToThread(String threadID, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread, boolean isDesc, String since, String limit) throws Exception {
         Connection connection = DBConnectionManager.getInstance().getConnection();
         PreparedStatement statement = null;
         JSONArray result = new JSONArray();
 
         try {
-            StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE thread=?");
+            StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE thread=? AND isDeleted=0");
             if (since != null)
-                query.append(" AND date > since");
+                query.append(" AND `date` > \"" + since + "\"");
+            if (isDesc)
+                query.append(" ORDER BY `date` DESC");
+            else
+                query.append(" ORDER BY `date` ASC");
             if (limit != null)
                 query.append(" LIMIT ").append(Integer.parseInt(limit));
-            if (isDesc)
-                query.append(" ORDER BY date DESC");
-            else
-                query.append(" ORDER BY date ASC");
             statement = connection.prepareStatement(query.toString());
-            statement.setInt(1, threadID);
+            statement.setInt(1, Integer.parseInt(threadID));
             ResultSet rows = statement.executeQuery();
             while (rows.next()) {
                 JSONObject temp = translate(rows);
@@ -123,13 +124,57 @@ public class Post {
     }
 
     @Nullable
-    public static int getPostsCountRelatedToThread(int threadID) {
+    public static JSONArray getPostsRelatedToForum(String shortName, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread, boolean isDesc, String since, String limit) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        JSONArray result = new JSONArray();
+
+        try {
+            StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE forum=? AND isDeleted=0");
+            if (since != null)
+                query.append(" AND `date` > \"" + since + "\"");
+            if (isDesc)
+                query.append(" ORDER BY `date` DESC");
+            else
+                query.append(" ORDER BY `date` ASC");
+            if (limit != null)
+                query.append(" LIMIT ").append(Integer.parseInt(limit));
+            statement = connection.prepareStatement(query.toString());
+            statement.setString(1, shortName);
+            ResultSet rows = statement.executeQuery();
+            while (rows.next()) {
+                JSONObject temp = translate(rows);
+                if (shouldExpandUser)
+                    temp.put("user", User.getDetails(temp.getString("user")));
+                if (shouldExpandForum)
+                    temp.put("forum", Forum.getDetails(temp.getString("forum"), false));
+                if (shouldExpandThread)
+                    temp.put("thread", Thread.getDetails(temp.getInt("thread"), false, false));
+                result.put(temp);
+            }
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+
+        return result;
+    }
+
+
+    @Nullable
+    public static int getPostsCountRelatedToThread(int threadID)  {
         Connection connection = DBConnectionManager.getInstance().getConnection();
         PreparedStatement statement = null;
         int result = 0;
 
         try {
-            statement = connection.prepareStatement("SELECT COUNT(*) FROM Post WHERE thread=?");
+            statement = connection.prepareStatement("SELECT COUNT(*) FROM Post WHERE thread=?  AND isDeleted=0");
             statement.setInt(1, threadID);
             ResultSet rows = statement.executeQuery();
             rows.first();
@@ -162,5 +207,117 @@ public class Post {
             DBConnectionManager.printSQLExceptionData(ex);
         }
         return new JSONObject().put("error", "No such forum!");
+    }
+
+    public static int remove(int postID) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        int newID = 0;
+
+        try {
+            statement = connection.prepareStatement("UPDATE Post SET isDeleted=1 WHERE id=? ", Statement.RETURN_GENERATED_KEYS);
+            statement.setInt(1, postID);
+            statement.executeUpdate();
+
+            ResultSet resultSet = statement.getGeneratedKeys();
+            if (!resultSet.first())
+                throw new Exception("1");
+            newID = resultSet.getInt(1);
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+        return newID;
+    }
+
+    public static int restore(int postID) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        int newID = 0;
+
+        try {
+            statement = connection.prepareStatement("UPDATE Post SET isDeleted=0 WHERE id=? ", Statement.RETURN_GENERATED_KEYS);
+            statement.setInt(1, postID);
+            statement.executeUpdate();
+
+            ResultSet resultSet = statement.getGeneratedKeys();
+            if (!resultSet.first())
+                throw new Exception("1");
+            newID = resultSet.getInt(1);
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+        return newID;
+    }
+
+    public static int update(int postID, String message) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        int newID = 0;
+
+        try {
+            statement = connection.prepareStatement("UPDATE Post SET message=? WHERE id=? ", Statement.RETURN_GENERATED_KEYS);
+            statement.setString(1, message);
+            statement.setInt(2, postID);
+            statement.executeUpdate();
+
+            ResultSet resultSet = statement.getGeneratedKeys();
+            if (!resultSet.first())
+                throw new Exception("1");
+            newID = resultSet.getInt(1);
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+        return newID;
+    }
+
+    public static int vote(int postID, boolean isDislike) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        int newID = 0;
+
+        try {
+            if (isDislike)
+                statement = connection.prepareStatement("UPDATE Post SET points=points-1, dislikes=dislikes+1 WHERE id=? ", Statement.RETURN_GENERATED_KEYS);
+            else
+                statement = connection.prepareStatement("UPDATE Post SET points=points+1, likes=likes+1 WHERE id=? ", Statement.RETURN_GENERATED_KEYS);
+            statement.setInt(1, postID);
+            statement.executeUpdate();
+
+            ResultSet resultSet = statement.getGeneratedKeys();
+            if (!resultSet.first())
+                throw new Exception("1");
+            newID = resultSet.getInt(1);
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+        return newID;
     }
 }

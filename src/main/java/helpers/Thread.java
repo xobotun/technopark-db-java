@@ -1,6 +1,7 @@
 package helpers;
 
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.*;
@@ -12,7 +13,7 @@ public class Thread {
         int newID = 0;
 
         try {
-            statement = connection.prepareStatement("INSERT INTO Thread (isDeleted, forum, title, isClosed, user, date, message, slug) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            statement = connection.prepareStatement("INSERT INTO Thread (isDeleted, forum, title, isClosed, user, `date`, message, slug) VALUES(?, ?, ?, ?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             statement.setBoolean(1, isDeleted);
             statement.setString(2, forum);
             statement.setString(3, title);
@@ -41,7 +42,7 @@ public class Thread {
     }
 
     @Nullable
-    public static JSONObject getDetails(int id, boolean shouldExpandUser, boolean shouldExpandForum) {
+    public static JSONObject getDetails(int id, boolean shouldExpandUser, boolean shouldExpandForum) throws Exception {
         Connection connection = DBConnectionManager.getInstance().getConnection();
         PreparedStatement statement = null;
         JSONObject result = null;
@@ -70,6 +71,46 @@ public class Thread {
         return result;
     }
 
+    @Nullable
+    public static JSONArray getThreadsRelatedToForum(String forumShortName, boolean shouldExpandUser, boolean shouldExpandForum, boolean isDesc, String since, String limit) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        JSONArray result = new JSONArray();
+
+        try {
+            StringBuilder query = new StringBuilder("SELECT * FROM Thread WHERE forum=?  AND isDeleted=0");
+            if (since != null)
+                query.append(" AND `date` > \"" + since + "\"");
+            if (isDesc)
+                query.append(" ORDER BY `date` DESC");
+            else
+                query.append(" ORDER BY `date` ASC");
+            if (limit != null)
+                query.append(" LIMIT ").append(Integer.parseInt(limit));
+            statement = connection.prepareStatement(query.toString());
+            statement.setString(1, forumShortName);
+            ResultSet rows = statement.executeQuery();
+            while (rows.next()) {
+                JSONObject temp = translate(rows);
+                if (shouldExpandUser)
+                    temp.put("user", User.getDetails(temp.getString("user")));
+                if (shouldExpandForum)
+                    temp.put("forum", Forum.getDetails(temp.getString("forum"), false));
+                result.put(temp);
+            }
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+
+        return result;
+    }
 
     public static JSONObject translate(ResultSet set) {
         try {

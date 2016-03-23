@@ -36,7 +36,7 @@ public class Forum {
     }
 
     @Nullable
-    public static JSONObject getDetails(String shortName, boolean shouldExpandUser) {
+    public static JSONObject getDetails(String shortName, boolean shouldExpandUser) throws Exception {
         Connection connection = DBConnectionManager.getInstance().getConnection();
         PreparedStatement statement = null;
         JSONObject result = null;
@@ -63,9 +63,19 @@ public class Forum {
     }
 
     @Nullable
-    public static JSONArray listPosts(String shortName, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread, boolean isDesc, String since, String limit) {
-        int threadID = getDetails(shortName, false).getInt("id");
-        return Post.getPostsRelatedToThread(threadID, shouldExpandUser, shouldExpandForum, shouldExpandThread, isDesc, since, limit);
+    public static JSONArray listPosts(String shortName, boolean shouldExpandUser, boolean shouldExpandForum, boolean shouldExpandThread, boolean isDesc, String since, String limit) throws  Exception {
+        //int threadID = getDetails(shortName, false).getInt("id");
+        return Post.getPostsRelatedToForum(shortName, shouldExpandUser, shouldExpandForum, shouldExpandThread, isDesc, since, limit);
+    }
+
+    @Nullable
+    public static JSONArray listThreads(String shortName, boolean shouldExpandUser, boolean shouldExpandForum, boolean isDesc, String since, String limit) throws Exception {
+        return Thread.getThreadsRelatedToForum(shortName, shouldExpandUser, shouldExpandForum, isDesc, since, limit);
+    }
+
+    @Nullable
+    public static JSONArray listUsers(String shortName, boolean isDesc, String since, String limit) {
+        return User.getUsersRelatedToForum(shortName, isDesc, since, limit);
     }
 
     public static JSONObject translate(ResultSet set) {

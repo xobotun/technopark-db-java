@@ -75,7 +75,7 @@ public class TableCreator {
                     "id INT NOT NULL AUTO_INCREMENT, " +
                     "name VARCHAR(255) NOT NULL, " +
                     "shortName VARCHAR(255) NOT NULL, " +
-                    "user VARCHAR(255) NOT NULL, " +
+                    "`user` VARCHAR(255) NOT NULL, " +
                     "PRIMARY KEY (id));");
             System.out.println("Forum succesfully created!");
         } catch (SQLException ex) {
@@ -103,7 +103,8 @@ public class TableCreator {
                               "about TEXT NULL, " +
                               "isAnonymous TINYINT NOT NULL, " +
                               "name VARCHAR(255) NULL, " +
-                              "PRIMARY KEY (id));");
+                              "PRIMARY KEY (email)," +
+                              "INDEX user_id (id ASC));");
             System.out.println("User succesfully created!");
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
@@ -149,8 +150,8 @@ public class TableCreator {
                     "id INT NOT NULL AUTO_INCREMENT, " +
                     "parent INT NULL DEFAULT 0, " +
                     "thread INT NOT NULL, " +
-                    "date VARCHAR(19) NOT NULL, " +
-                    "user VARCHAR(255) NOT NULL, " +
+                    "`date` VARCHAR(19) NOT NULL, " +
+                    "`user` VARCHAR(255) NOT NULL, " +
                     "forum VARCHAR(255) NOT NULL, " +
                     "message TEXT NOT NULL, " +
                     "isApproved TINYINT NOT NULL DEFAULT 0, " +
@@ -186,8 +187,8 @@ public class TableCreator {
                     "id INT NOT NULL AUTO_INCREMENT, " +
                     "title VARCHAR(255) NOT NULL, " +
                     "slug VARCHAR(255) NOT NULL, " +
-                    "date VARCHAR(19) NOT NULL, " +
-                    "user VARCHAR(255) NOT NULL, " +
+                    "`date` VARCHAR(19) NOT NULL, " +
+                    "`user` VARCHAR(255) NOT NULL, " +
                     "forum VARCHAR(255) NOT NULL, " +
                     "message TEXT NOT NULL, " +
                     "isDeleted TINYINT NOT NULL DEFAULT 0, " +
@@ -216,7 +217,7 @@ public class TableCreator {
             statement = connection.createStatement();
             statement.execute("DROP TABLE IF EXISTS " + DBConnectionManager.DBNAME + ".SubscriptionMap;");
             statement.execute("CREATE TABLE IF NOT EXISTS " + DBConnectionManager.DBNAME + ".SubscriptionMap (" +
-                    "user INT NOT NULL, " +
+                    "`user` INT NOT NULL, " +
                     "thread INT NOT NULL);");
             System.out.println("SubscriptionMap succesfully created!");
         } catch (SQLException ex) {
