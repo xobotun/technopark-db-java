@@ -106,16 +106,60 @@ public class User {
         return result;
     }
 
+    public static int updateProfile(String about, String name, String email) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        int rowsUpdated = 0;
+
+        try {
+            statement = connection.prepareStatement("UPDATE User SET name=?, about=? WHERE email=?");
+            statement.setString(2, about);
+            statement.setString(1, name);
+            statement.setString(3, email);
+            rowsUpdated = statement.executeUpdate();
+            if (rowsUpdated == 0)
+                throw new Exception("5");
+        } catch (MySQLIntegrityConstraintViolationException ex) {
+            throw new Exception("5");
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+
+        return rowsUpdated;
+    }
+
+    @Nullable
+    public static JSONArray listPosts(String shortName, boolean isDesc, String since, String limit) throws Exception {
+        return Post.getPostsRelatedToUser(shortName, isDesc, since, limit);
+    }
+
+    @Nullable
+    public static JSONArray listFollowers(String shortName, boolean isDesc, Integer since_id, String limit) throws Exception {
+        return FollowMap.getFollowers(shortName, isDesc, since_id, limit);
+    }
+
+    @Nullable
+    public static JSONArray listFollowees(String shortName, boolean isDesc, Integer since_id, String limit) throws Exception {
+        return FollowMap.getFollowees(shortName, isDesc, since_id, limit);
+    }
+
     public static JSONObject translate(ResultSet set) {
         try {
             if (!set.getBoolean("isAnonymous"))
                 return new JSONObject().put("id", set.getInt("id")).put("about", set.getString("about")).put("email", set.getString("email")).put("name", set.getString("name"))
-                    .put("username", set.getString("username")).put("isAnonymous", set.getBoolean("isAnonymous")).put("followers", FollowMap.getFollowers(set.getInt("id")))
-                    .put("followees", FollowMap.getFollowees(set.getInt("id"))).put("subscriptions", SubscriptionMap.getThreads(set.getInt("id")));
+                    .put("username", set.getString("username")).put("isAnonymous", set.getBoolean("isAnonymous")).put("followers", FollowMap.getFollowers(set.getString("email")))
+                    .put("following", FollowMap.getFollowees(set.getString("email"))).put("subscriptions", SubscriptionMap.getThreads(set.getString("email")));
             else
                 return new JSONObject().put("id", set.getInt("id")).put("about", JSONObject.NULL).put("email", set.getString("email")).put("name", JSONObject.NULL)
-                    .put("username", JSONObject.NULL).put("isAnonymous", set.getBoolean("isAnonymous")).put("followers", FollowMap.getFollowers(set.getInt("id")))
-                    .put("followees", FollowMap.getFollowees(set.getInt("id"))).put("subscriptions", SubscriptionMap.getThreads(set.getInt("id")));
+                    .put("username", JSONObject.NULL).put("isAnonymous", set.getBoolean("isAnonymous")).put("followers", FollowMap.getFollowers(set.getString("email")))
+                    .put("following", FollowMap.getFollowees(set.getString("email"))).put("subscriptions", SubscriptionMap.getThreads(set.getString("email")));
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
         }

@@ -10,7 +10,7 @@ import java.sql.SQLException;
 
 public class SubscriptionMap {
 
-    public static int create(int threadID, int userID) {
+    public static int create(int threadID, String email) {
         Connection connection = DBConnectionManager.getInstance().getConnection();
         PreparedStatement statement = null;
         int rowsUpdated = 0;
@@ -18,7 +18,7 @@ public class SubscriptionMap {
         try {
             statement = connection.prepareStatement("INSERT INTO SubscriptionMap (thread, user) VALUES(?, ?)");
             statement.setInt(1, threadID);
-            statement.setInt(2, userID);
+            statement.setString(2, email);
             rowsUpdated = statement.executeUpdate();
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
@@ -34,14 +34,38 @@ public class SubscriptionMap {
         return rowsUpdated;
     }
 
-    public static JSONArray getThreads(int userID) {
+    public static int delete(int threadID, String email) {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        int rowsUpdated = 0;
+
+        try {
+            statement = connection.prepareStatement("DELETE FROM SubscriptionMap WHERE thread=? AND user=?");
+            statement.setInt(1, threadID);
+            statement.setString(2, email);
+            rowsUpdated = statement.executeUpdate();
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+
+        return rowsUpdated;
+    }
+
+    public static JSONArray getThreads(String email) {
         Connection connection = DBConnectionManager.getInstance().getConnection();
         PreparedStatement statement = null;
         JSONArray result = null;
 
         try {
             statement = connection.prepareStatement("SELECT thread FROM SubscriptionMap WHERE user=?");
-            statement.setInt(1, userID);
+            statement.setString(1, email);
             ResultSet rows = statement.executeQuery();
             result = translate(rows);
         } catch (SQLException ex) {
@@ -83,13 +107,13 @@ public class SubscriptionMap {
     }
 
     public static JSONArray translate(ResultSet set) {
+        JSONArray result = new JSONArray();
         try {
-            JSONArray result = new JSONArray();
             while (set.next())
                 result.put(set.getInt(1));
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
         }
-        return new JSONArray();
+        return result;
     }
 }

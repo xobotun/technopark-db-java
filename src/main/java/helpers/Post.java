@@ -89,7 +89,7 @@ public class Post {
         try {
             StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE thread=? AND isDeleted=0");
             if (since != null)
-                query.append(" AND `date` > \"" + since + "\"");
+                query.append(" AND `date` >= \"" + since + "\"");
             if (isDesc)
                 query.append(" ORDER BY `date` DESC");
             else
@@ -132,7 +132,7 @@ public class Post {
         try {
             StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE forum=? AND isDeleted=0");
             if (since != null)
-                query.append(" AND `date` > \"" + since + "\"");
+                query.append(" AND `date` >= \"" + since + "\"");
             if (isDesc)
                 query.append(" ORDER BY `date` DESC");
             else
@@ -166,6 +166,43 @@ public class Post {
         return result;
     }
 
+    @Nullable
+    public static JSONArray getPostsRelatedToUser(String user, boolean isDesc, String since, String limit) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        JSONArray result = new JSONArray();
+
+        try {
+            StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE `user`=? AND isDeleted=0");
+            if (since != null)
+                query.append(" AND `date` >= \"" + since + "\"");
+            if (isDesc)
+                query.append(" ORDER BY `date` DESC");
+            else
+                query.append(" ORDER BY `date` ASC");
+            if (limit != null)
+                query.append(" LIMIT ").append(Integer.parseInt(limit));
+            statement = connection.prepareStatement(query.toString());
+            statement.setString(1, user);
+            ResultSet rows = statement.executeQuery();
+            while (rows.next()) {
+                JSONObject temp = translate(rows);
+                result.put(temp);
+            }
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+
+        return result;
+    }
+
 
     @Nullable
     public static int getPostsCountRelatedToThread(int threadID)  {
@@ -174,7 +211,7 @@ public class Post {
         int result = 0;
 
         try {
-            statement = connection.prepareStatement("SELECT COUNT(*) FROM Post WHERE thread=?  AND isDeleted=0");
+            statement = connection.prepareStatement("SELECT COUNT(*) FROM Post WHERE thread=? AND isDeleted=0");
             statement.setInt(1, threadID);
             ResultSet rows = statement.executeQuery();
             rows.first();

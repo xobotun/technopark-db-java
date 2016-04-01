@@ -125,8 +125,8 @@ public class TableCreator {
             statement = connection.createStatement();
             statement.execute("DROP TABLE IF EXISTS " + DBConnectionManager.DBNAME + ".FollowMap;");
             statement.execute("CREATE TABLE IF NOT EXISTS " + DBConnectionManager.DBNAME + ".FollowMap (" +
-                    "follower INT NOT NULL, " +
-                    "followee INT NOT NULL);");
+                    "follower VARCHAR(255) NOT NULL, " +
+                    "followee VARCHAR(255) NOT NULL);");
             System.out.println("FollowMap succesfully created!");
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
@@ -217,7 +217,7 @@ public class TableCreator {
             statement = connection.createStatement();
             statement.execute("DROP TABLE IF EXISTS " + DBConnectionManager.DBNAME + ".SubscriptionMap;");
             statement.execute("CREATE TABLE IF NOT EXISTS " + DBConnectionManager.DBNAME + ".SubscriptionMap (" +
-                    "`user` INT NOT NULL, " +
+                    "`user` VARCHAR(255) NOT NULL, " +
                     "thread INT NOT NULL);");
             System.out.println("SubscriptionMap succesfully created!");
         } catch (SQLException ex) {
