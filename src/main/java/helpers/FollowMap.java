@@ -22,7 +22,8 @@ public class FollowMap {
             statement.setString(2, followee);
             rowsUpdated = statement.executeUpdate();
         } catch (SQLException ex) {
-            DBConnectionManager.printSQLExceptionData(ex);
+            if (ex.getErrorCode() != 1062)
+                DBConnectionManager.printSQLExceptionData(ex);
         } finally {
             if (statement != null)
                 try {
@@ -90,9 +91,9 @@ public class FollowMap {
         JSONArray result = new JSONArray();
 
         try {
-            StringBuilder query = new StringBuilder("SELECT follower FROM FollowMap JOIN User ON followee=?");
+            StringBuilder query = new StringBuilder("SELECT follower FROM FollowMap JOIN `User` ON followee=?");
             if (since_id != null)
-                query.append(" WHERE id >= \"" + since_id + "\"");
+                query.append(" WHERE id >= " + since_id);
             if (isDesc)
                 query.append(" ORDER BY name DESC");
             else
@@ -102,8 +103,14 @@ public class FollowMap {
             statement = connection.prepareStatement(query.toString());
             statement.setString(1, user);
             ResultSet rows = statement.executeQuery();
+
+            JSONArray temp = new JSONArray();
+            int i = 0;
             while (rows.next()) {
-                result = translate(rows);
+                temp = translate(rows);
+            }
+            for (i = 0; i < temp.length(); ++i) {
+                result.put(User.getDetails((String) temp.get(i)));
             }
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
@@ -150,9 +157,9 @@ public class FollowMap {
         JSONArray result = new JSONArray();
 
         try {
-            StringBuilder query = new StringBuilder("SELECT followee FROM FollowMap JOIN User ON follower=?");
+            StringBuilder query = new StringBuilder("SELECT followee FROM FollowMap JOIN `User` ON follower=?");
             if (since_id != null)
-                query.append(" WHERE id >= \"" + since_id + "\"");
+                query.append(" WHERE id >= " + since_id);
             if (isDesc)
                 query.append(" ORDER BY name DESC");
             else
@@ -162,9 +169,16 @@ public class FollowMap {
             statement = connection.prepareStatement(query.toString());
             statement.setString(1, user);
             ResultSet rows = statement.executeQuery();
+
+            JSONArray temp = new JSONArray();
+            int i = 0;
             while (rows.next()) {
-                result = translate(rows);
+                temp = translate(rows);
             }
+            for (i = 0; i < temp.length(); ++i) {
+                result.put(User.getDetails((String)temp.get(i)));
+            }
+
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
         } finally {
@@ -180,13 +194,13 @@ public class FollowMap {
     }
 
     public static JSONArray translate(ResultSet set) {
+        JSONArray result = new JSONArray();
         try {
-            JSONArray result = new JSONArray();
             while (set.next())
                 result.put(set.getString(1));
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
         }
-        return new JSONArray();
+        return result;
     }
 }

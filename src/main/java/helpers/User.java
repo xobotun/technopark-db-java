@@ -76,13 +76,13 @@ public class User {
         JSONArray result = new JSONArray();
 
         try {
-            StringBuilder query = new StringBuilder("SELECT User.id, User.email, User.username, User.about, User.isAnonymous, User.name, Forum.shortName FROM Forum JOIN User ON User.email=Forum.user WHERE Forum.shortName=?");
+            StringBuilder query = new StringBuilder("SELECT * FROM User WHERE email IN (SELECT Post.user FROM Post WHERE Post.forum = ?)");
             if (since != null)
                 query.append(" AND id > " + since);
             if (isDesc)
-                query.append(" ORDER BY name DESC");
+                query.append(" ORDER BY isAnonymous, name DESC");
             else
-                query.append(" ORDER BY name ASC");
+                query.append(" ORDER BY name, isAnonymous ASC");
             if (limit != null)
                 query.append(" LIMIT ").append(Integer.parseInt(limit));
             statement = connection.prepareStatement(query.toString());

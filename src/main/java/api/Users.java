@@ -321,7 +321,7 @@ public class Users {
     }
 
     @GET
-    @Path("/listFollowees/")
+    @Path("/listFollowing/")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
     public Response listFollowees(String jsonString, @Context HttpServletRequest request) {

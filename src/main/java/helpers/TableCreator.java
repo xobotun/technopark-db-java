@@ -126,7 +126,8 @@ public class TableCreator {
             statement.execute("DROP TABLE IF EXISTS " + DBConnectionManager.DBNAME + ".FollowMap;");
             statement.execute("CREATE TABLE IF NOT EXISTS " + DBConnectionManager.DBNAME + ".FollowMap (" +
                     "follower VARCHAR(255) NOT NULL, " +
-                    "followee VARCHAR(255) NOT NULL);");
+                    "followee VARCHAR(255) NOT NULL," +
+                    "PRIMARY KEY (follower, followee));");
             System.out.println("FollowMap succesfully created!");
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
