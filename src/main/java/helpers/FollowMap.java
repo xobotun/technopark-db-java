@@ -91,7 +91,7 @@ public class FollowMap {
         JSONArray result = new JSONArray();
 
         try {
-            StringBuilder query = new StringBuilder("SELECT follower FROM FollowMap JOIN `User` ON followee=?");
+            StringBuilder query = new StringBuilder("SELECT follower FROM FollowMap JOIN `User` ON followee=? AND follower=email");
             if (since_id != null)
                 query.append(" WHERE id >= " + since_id);
             if (isDesc)
@@ -104,11 +104,9 @@ public class FollowMap {
             statement.setString(1, user);
             ResultSet rows = statement.executeQuery();
 
-            JSONArray temp = new JSONArray();
-            int i = 0;
-            while (rows.next()) {
-                temp = translate(rows);
-            }
+            int i;
+            JSONArray temp = translate(rows);
+
             for (i = 0; i < temp.length(); ++i) {
                 result.put(User.getDetails((String) temp.get(i)));
             }
@@ -157,7 +155,7 @@ public class FollowMap {
         JSONArray result = new JSONArray();
 
         try {
-            StringBuilder query = new StringBuilder("SELECT followee FROM FollowMap JOIN `User` ON follower=?");
+            StringBuilder query = new StringBuilder("SELECT followee FROM FollowMap JOIN `User` ON follower=? AND followee=email");
             if (since_id != null)
                 query.append(" WHERE id >= " + since_id);
             if (isDesc)
@@ -170,11 +168,8 @@ public class FollowMap {
             statement.setString(1, user);
             ResultSet rows = statement.executeQuery();
 
-            JSONArray temp = new JSONArray();
-            int i = 0;
-            while (rows.next()) {
-                temp = translate(rows);
-            }
+            int i;
+            JSONArray temp = translate(rows);
             for (i = 0; i < temp.length(); ++i) {
                 result.put(User.getDetails((String)temp.get(i)));
             }

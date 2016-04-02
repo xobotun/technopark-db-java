@@ -5,10 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class User {
     public static int create(String username, String about, String name, String email, boolean isAnonymous) throws Exception {
@@ -18,9 +15,18 @@ public class User {
 
         try {
             statement = connection.prepareStatement("INSERT INTO User (username, about, name, email, isAnonymous) VALUES(?, ?, ?, ? ,?)");
-            statement.setString(1, username);
-            statement.setString(2, about);
-            statement.setString(3, name);
+           // if (!username.equals("null"))
+                statement.setString(1, username);
+            //else
+            //    statement.setNull(1, Types.VARCHAR);
+            //if (!about.equals("null"))
+                statement.setString(2, about);
+            //else
+             //   statement.setNull(2, Types.VARCHAR);
+            //if (!name.equals("null"))
+                statement.setString(3, name);
+            //else
+            //    statement.setNull(3, Types.VARCHAR);
             statement.setString(4, email);
             statement.setBoolean(5, isAnonymous);
             rowsUpdated = statement.executeUpdate();
@@ -78,11 +84,11 @@ public class User {
         try {
             StringBuilder query = new StringBuilder("SELECT * FROM User WHERE email IN (SELECT Post.user FROM Post WHERE Post.forum = ?)");
             if (since != null)
-                query.append(" AND id > " + since);
+                query.append(" AND id >= " + since);
             if (isDesc)
-                query.append(" ORDER BY isAnonymous, name DESC");
+                query.append(" ORDER BY isAnonymous ASC, name DESC");
             else
-                query.append(" ORDER BY name, isAnonymous ASC");
+                query.append(" ORDER BY isAnonymous DESC, name ASC");
             if (limit != null)
                 query.append(" LIMIT ").append(Integer.parseInt(limit));
             statement = connection.prepareStatement(query.toString());

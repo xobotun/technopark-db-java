@@ -271,7 +271,7 @@ public class Forums {
                             isDesc = false;
                     if (jsonRequest.has("limit"))
                         limit = jsonRequest.getString("limit");
-                    if (jsonRequest.has("since"))
+                    if (jsonRequest.has("since_id"))
                         sinceID = jsonRequest.getString("since");
                 shortName = jsonRequest.getString("forum");
             } else
@@ -281,7 +281,7 @@ public class Forums {
             if (request.getParameter("order").equals("asc"))
                 isDesc = false;
             limit = request.getParameter("limit");
-            sinceID = request.getParameter("since");
+            sinceID = request.getParameter("since_id");
             shortName = request.getParameter("forum");
 
         }
