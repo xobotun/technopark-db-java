@@ -43,7 +43,8 @@ public class TableCreator {
         Statement statement = null;
         try {
             statement = connection.createStatement();
-
+            
+            statement.execute("SET NAMES 'utf8';");
             statement.execute("DROP USER IF EXISTS " + DBConnectionManager.LOGIN_DOMAIN);
             statement.execute("CREATE USER " + DBConnectionManager.LOGIN_DOMAIN + " IDENTIFIED BY \"" + DBConnectionManager.PASSWORD + "\";");
 
