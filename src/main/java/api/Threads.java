@@ -504,4 +504,66 @@ public class Threads {
         else
             return StandartAnswerManager.badRequest("No such forum!");
     }
+
+    @GET
+    @Path("/listPosts/")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response listPosts(String jsonString, @Context HttpServletRequest request) {
+        boolean isDesc = true;
+        String limit = null;
+        String since = null;
+        String sort = "flat";
+        Integer thread = null;
+
+        if (request.getQueryString() == null) {
+            final JSONObject jsonRequest;
+            try {
+                jsonRequest = new JSONObject(jsonString);
+            } catch (JSONException ex) {
+                return StandartAnswerManager.badRequest();
+            }
+            final JSONArray errorList = StandartAnswerManager.showFieldsNotPresent(jsonRequest, new String[]{"thread"});
+            if (errorList == null) {
+                if (jsonRequest.has("order"))
+                    if (jsonRequest.get("order").equals("asc"))
+                        isDesc = false;
+                if (jsonRequest.has("limit"))
+                    limit = jsonRequest.getString("limit");
+                if (jsonRequest.has("since"))
+                    since = jsonRequest.getString("since");
+                thread  = jsonRequest.getInt("thread");
+                sort = jsonRequest.getString("sort");
+            } else
+                return StandartAnswerManager.badRequest(errorList);
+
+        } else {
+            if (request.getParameter("order").equals("asc"))
+                isDesc = false;
+            limit = request.getParameter("limit");
+            since = request.getParameter("since");
+
+            thread = Integer.parseInt(request.getParameter("thread"));
+            sort = request.getParameter("sort");
+
+        }
+
+        if (sort == null)
+            sort = "flat";
+
+        if (!(sort.equals("flat") || sort.equals("tree") || sort.equals("parent_tree")))
+            return StandartAnswerManager.code3();
+
+        JSONArray posts;
+        try {
+            posts = Post.getPostsRelatedToThread(thread, sort, isDesc, since, limit);
+        } catch (Exception ex) {
+            return StandartAnswerManager.handleExceptions(ex);
+        }
+
+        if (posts != null)
+            return StandartAnswerManager.ok(posts);
+        else
+            return StandartAnswerManager.badRequest("No such forum!");
+    }
 }

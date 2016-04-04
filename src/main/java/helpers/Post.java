@@ -5,6 +5,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.sql.*;
+import java.util.HashMap;
 
 public class Post {
     public static int create(Integer parent, boolean isApproved, boolean isHighlighted, boolean isEdited, boolean isSpam, boolean isDeleted, String date, int thread, String message, String user, String forum) {
@@ -33,6 +34,7 @@ public class Post {
             ResultSet resultSet = statement.getGeneratedKeys();
             resultSet.next();
             newID = resultSet.getInt(1);
+            updateTreePath(parent, thread, newID);
         } catch (SQLException ex) {
             DBConnectionManager.printSQLExceptionData(ex);
         } finally {
@@ -45,6 +47,71 @@ public class Post {
         }
 
         return newID;
+    }
+
+    private static void updateTreePath(Integer parent, int thread, int self) {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+
+        try {
+            String rootPath;
+            if (parent == null) {
+                // If no parent specified
+                statement = connection.prepareStatement("SELECT treePath FROM Post WHERE thread=? AND id!=? ORDER BY treePath DESC LIMIT 1");
+                statement.setInt(1, thread);
+                statement.setInt(2, self);
+                ResultSet resultSet = statement.executeQuery();
+                if (resultSet.first()) {
+                    // If at least one another post is present
+                    rootPath = resultSet.getString(1);
+                    if (rootPath.indexOf('.') > 0)
+                        rootPath = rootPath.substring(0, rootPath.indexOf('.'));
+                    rootPath = ("000000" + String.valueOf(Integer.parseInt(rootPath) + 1)).substring(String.valueOf(Integer.parseInt(rootPath) + 1).length());
+
+                }
+                else
+                    rootPath = "000001";
+            } else  {
+                // If parent is specified
+                statement = connection.prepareStatement("SELECT treePath FROM Post WHERE thread=? AND parent=? AND id!=? ORDER BY treePath DESC LIMIT 1");
+                statement.setInt(1, thread);
+                statement.setInt(2, parent);
+                statement.setInt(3, self);
+                ResultSet resultSet = statement.executeQuery();
+                if (resultSet.first()) {
+                    // If parent has childs
+                    rootPath = resultSet.getString(1);
+                    String thisChildID = String.valueOf(Integer.parseInt(rootPath.substring(rootPath.lastIndexOf('.') + 1)) + 1);
+                    rootPath = rootPath.substring(0, rootPath.lastIndexOf('.') + 1) + ("000000" + thisChildID).substring(thisChildID.length());
+                }
+                else {
+                    // This is the fisrt child
+                    statement = connection.prepareStatement("SELECT treePath FROM Post WHERE thread=? AND id=?");
+                    statement.setInt(1, thread);
+                    statement.setInt(2, parent);
+                    resultSet = statement.executeQuery();
+                    if (resultSet.first()) {
+                        // Get parent data
+                        rootPath = resultSet.getString(1);
+                        rootPath += ".000001";
+                    } else
+                        rootPath = "???";
+                }
+            }
+            statement = connection.prepareStatement("UPDATE Post SET treePath=? WHERE id=?");
+            statement.setString(1, rootPath);
+            statement.setInt(2, self);
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
     }
 
     @Nullable
@@ -230,6 +297,17 @@ public class Post {
         return result;
     }
 
+    @Nullable
+    public static JSONArray getPostsRelatedToThread(int threadID, String sort, boolean isDesc, String since, String limit) throws Exception {
+        if (sort.equals("tree"))
+            return treeSort(threadID, isDesc, since, limit);
+
+        if (sort.equals("parent_tree"))
+            return parentTreeSort(threadID, isDesc, since, limit);
+
+        return flatSort(threadID, isDesc, since, limit);
+    }
+
     public static JSONObject translate(ResultSet set) {
         try {
             Object parentID = set.getInt("parent");
@@ -356,5 +434,128 @@ public class Post {
                 }
         }
         return newID;
+    }
+
+
+    private static JSONArray flatSort(int threadID, boolean isDesc, String since, String limit) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        JSONArray result = new JSONArray();
+
+        try {
+            StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE thread=?");
+            if (since != null)
+                query.append(" AND `date` >= \"" + since + "\"");
+            if (isDesc)
+                query.append(" ORDER BY `date` DESC");
+            else
+                query.append(" ORDER BY `date` ASC");
+            if (limit != null)
+                query.append(" LIMIT ").append(Integer.parseInt(limit));
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, threadID);
+            ResultSet rows = statement.executeQuery();
+            while (rows.next()) {
+                JSONObject temp = translate(rows);
+                result.put(temp);
+            }
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+        return result;
+    }
+
+    private static JSONArray treeSort(int threadID, boolean isDesc, String since, String limit) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        JSONArray result = new JSONArray();
+
+        try {
+            StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE thread=?");
+            if (since != null)
+                query.append(" AND `date` >= \"" + since + "\"");
+            if (isDesc)
+                query.append(" ORDER BY SUBSTR(treePath, 1, 6) DESC, treePath ASC");
+            else
+                query.append(" ORDER BY SUBSTR(treePath, 1, 6) ASC, treePath ASC");
+            if (limit != null)
+                query.append(" LIMIT ").append(Integer.parseInt(limit));
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, threadID);
+            ResultSet rows = statement.executeQuery();
+            while (rows.next()) {
+                JSONObject temp = translate(rows);
+                result.put(temp);
+            }
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+        return result;
+    }
+
+    private static JSONArray parentTreeSort(int threadID, boolean isDesc, String since, String limit) throws Exception {
+        Connection connection = DBConnectionManager.getInstance().getConnection();
+        PreparedStatement statement = null;
+        JSONArray result = new JSONArray();
+
+        try {
+            JSONArray rootResult = new JSONArray();
+            StringBuilder query = new StringBuilder("SELECT * FROM Post WHERE thread=? AND parent IS NULL");
+            if (since != null)
+                query.append(" AND `date` >= \"" + since + "\"");
+            if (isDesc)
+                query.append(" ORDER BY treePath ASC");
+            else
+                query.append(" ORDER BY treePath ASC");
+            if (limit != null)
+                query.append(" LIMIT ").append(Integer.parseInt(limit));
+            statement = connection.prepareStatement(query.toString());
+            statement.setInt(1, threadID);
+            ResultSet rows = statement.executeQuery();
+            HashMap<Integer, String> treePaths = new HashMap<>();
+
+            while (rows.next()) {
+                JSONObject temp = translate(rows);
+                treePaths.put(temp.getInt("id"), rows.getString("treePath"));
+                rootResult.put(temp);
+            }
+
+            for (int i = 0; i < rootResult.length(); ++i)
+            {
+                result.put(rootResult.get(i));
+                statement = connection.prepareStatement("SELECT * FROM Post WHERE thread=? AND parent IS NOT NULL AND treePath LIKE ?");
+                statement.setInt(1, threadID);
+                statement.setString(2, treePaths.get(((JSONObject)rootResult.get(i)).getInt("id")) + '%');
+                rows = statement.executeQuery();
+                while (rows.next()) {
+                    JSONObject temp = translate(rows);
+                    result.put(temp);
+                }
+            }
+        } catch (SQLException ex) {
+            DBConnectionManager.printSQLExceptionData(ex);
+        } finally {
+            if (statement != null)
+                try {
+                    statement.close();
+                } catch (SQLException ex) {
+                    DBConnectionManager.printSQLExceptionData(ex);
+                }
+        }
+        return result;
     }
 }
