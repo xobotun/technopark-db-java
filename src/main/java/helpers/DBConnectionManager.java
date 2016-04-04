@@ -39,9 +39,9 @@ public class DBConnectionManager implements AutoCloseable {
         try {
             DriverManager.registerDriver(driver);
             if (!isRoot)
-                connection = DriverManager.getConnection(ADDRESS + DBNAME, LOGIN, PASSWORD);
+                connection = DriverManager.getConnection(ADDRESS + DBNAME + UNICODE, LOGIN, PASSWORD);
             else
-                rootConnection = DriverManager.getConnection(ADDRESS, ROOT_LOGIN, ROOT_PASSWORD);
+                rootConnection = DriverManager.getConnection(ADDRESS + UNICODE, ROOT_LOGIN, ROOT_PASSWORD);
             System.out.println("Connection succesfully opened!");
         } catch (SQLException ex) {
             printSQLExceptionData(ex);
@@ -79,5 +79,7 @@ public class DBConnectionManager implements AutoCloseable {
     public static final String PASSWORD = "password";
     public static final String ADDRESS = "jdbc:mysql://" + DOMAIN + ":3306/";
     public static final String DBNAME = "technopark_db_java";
+    public static final String UNICODE = "?useUnicode=true&characterEncoding=utf8";
+
 }
 
