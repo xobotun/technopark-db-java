@@ -1,3 +1,5 @@
+package main;
+
 import api.*;
 
 import javax.ws.rs.ApplicationPath;

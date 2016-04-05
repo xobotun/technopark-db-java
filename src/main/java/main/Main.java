@@ -1,3 +1,5 @@
+package main;
+
 import helpers.TableCreator;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -14,11 +16,11 @@ public class Main {
         final ServletContextHandler contextHandler = new ServletContextHandler(server, "/db/api");
 
         final ServletHolder servletHolder = new ServletHolder(ServletContainer.class);
-        servletHolder.setInitParameter("javax.ws.rs.Application", "RestApplication");
+        servletHolder.setInitParameter("javax.ws.rs.Application", "main.RestApplication");
 
         contextHandler.addServlet(servletHolder, "/*");
 
-        establishDB();
+        establishDB(args);
 
         server.start();
         server.join();
@@ -26,7 +28,7 @@ public class Main {
     }
 
     private static void setCustomPort(String[] args) {
-        if (args.length == 1)
+        if (args.length >= 1)
             port = Integer.valueOf(args[0]);
         else {
             System.err.format("Port is not specified, setting it to %d\n", DEFAULT_PORT);
@@ -34,8 +36,9 @@ public class Main {
         }
     }
 
-    private static void establishDB() {
-        TableCreator.createAll();
+    private static void establishDB(String[] args) {
+        if (args.length >= 2 && args[1].equals("drop"))
+            TableCreator.createAll();
     }
 
     private static int port;
