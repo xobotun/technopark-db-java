@@ -86,7 +86,8 @@ public class Forums {
                 return StandartAnswerManager.badRequest(errorList);
 
         } else {
-            isUserDataRequested = request.getParameter("related").equals("user");
+            if (request.getParameter("related") != null)
+                isUserDataRequested = request.getParameter("related").equals("user");
             forumShortName = request.getParameter("forum");
         }
 
